@@ -1,95 +1,65 @@
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'profil.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
+import 'screens/splash_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'consultation_booking_screen.dart';
+import 'consultation_history_screen.dart';
+import 'theme/app_theme.dart';
 
-void main() => runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // Masukkan data praktikan
-  final String nama = "Alvira Amelia Marasabessy";
-  final String nim = "20240801280";
-  final String hobi = "Sepeda";
-
-  @override
-  Widget build(BuildContext context) {
-    // Mengambil digit terakhir NIM
-    final int digitTerakhir =
-    int.parse(nim[nim.length - 1]);
-
-    // Menghitung skor aktivitas
-    final int duaDigitTerakhir =
-    int.parse(nim.substring(nim.length - 2));
-
-    final int skorAktivitas =
-        duaDigitTerakhir + 50;
-
-    // Menentukan warna background
-    final Color warnaBackground =
-    digitTerakhir.isOdd
-        ? Colors.tealAccent.shade100
-        : Colors.amber.shade100;
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Tugas Layout Flutter',
-
-      theme: ThemeData(
-        scaffoldBackgroundColor: warnaBackground,
-        useMaterial3: true,
-      ),
-
-      home: HomePage(
-        nama: nama,
-        nim: nim,
-        hobi: hobi,
-        skorAktivitas: skorAktivitas,
-      ),
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
     );
+  } catch (e) {
+    debugPrint('Firebase init warning: $e');
   }
+
+  // Mode debug: OTP memakai nomor uji dari console Firebase
+  if (kDebugMode) {
+    try {
+      await FirebaseAuth.instance.setSettings(
+        appVerificationDisabledForTesting: true,
+      );
+    } catch (e) {
+      debugPrint('Auth settings warning: $e');
+    }
+  }
+
+  runApp(const RuangRancangApp());
 }
 
-class HomePage extends StatelessWidget {
-  final String nama;
-  final String nim;
-  final String hobi;
-  final int skorAktivitas;
-
-  const HomePage({
-    super.key,
-    required this.nama,
-    required this.nim,
-    required this.hobi,
-    required this.skorAktivitas,
-  });
+class RuangRancangApp extends StatelessWidget {
+  const RuangRancangApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Profil Praktikan",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-      ),
+    return MaterialApp(
+      title: 'RuangRancang',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
 
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+      // Menggunakan Rute Awal
+      initialRoute: '/',
 
-          child: ProfileCard(
-            nama: nama,
-            nim: nim,
-            hobi: hobi,
-            skorAktivitas: skorAktivitas,
-          ),
-        ),
-      ),
+      // Mendaftarkan Rute Halaman agar URL di Web/Chrome berubah
+      routes: {
+        '/': (context) => const SplashScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/booking': (context) {
+          final uid = FirebaseAuth.instance.currentUser?.uid ?? 'user_guest';
+          return ConsultationBookingScreen(userId: uid);
+        },
+        '/history': (context) {
+          final uid = FirebaseAuth.instance.currentUser?.uid ?? 'user_guest';
+          return ConsultationHistoryScreen(userId: uid);
+        },
+      },
     );
   }
 }
